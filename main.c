@@ -46,13 +46,13 @@ struct eth_frame {
     uint8 src_mac[6];
     uint16 eth_type;
 
-    struct ip_dtgm eth_data; 
+    struct ip_dtgm eth_data;
 };
 
 uint16 cpy_2(const u_char* src)
 {
     uint16 tmp = 0;
-    for(int i=0; i<2; i++) {
+    for (int i = 0; i < 2; i++) {
         tmp <<= 8;
         tmp += src[i];
     }
@@ -62,7 +62,7 @@ uint16 cpy_2(const u_char* src)
 uint32 cpy_4(const u_char* src)
 {
     uint32 tmp = 0;
-    for(int i=0; i<4; i++) {
+    for (int i = 0; i < 4; i++) {
         tmp <<= 8;
         tmp += src[i];
     }
@@ -71,14 +71,15 @@ uint32 cpy_4(const u_char* src)
 
 int ext_http(const u_char* src)
 {
-    for(int i=0; i<16; i++) {
-        if(i == 8) printf("\n");
-        if(src[i] >= 33 && src[i] <= 126)
+    for (int i = 0; i < 16; i++) {
+        if (i == 8)
+            printf("\n");
+        if (src[i] >= 33 && src[i] <= 126)
             printf("%c ", src[i]);
-        else printf(". ");
+        else
+            printf(". ");
     }
     printf("\n");
-
 }
 
 int ext_tcp(int len, const u_char* src, struct tcp_seg* dest)
@@ -93,7 +94,7 @@ int ext_tcp(int len, const u_char* src, struct tcp_seg* dest)
     dest->win = ntohs(cpy_2(src + 14));
     dest->chksum = ntohs(cpy_2(src + 16));
     dest->u_pnt = ntohs(cpy_2(src + 18));
-    for(int i=0; i< dest->offset - 5; i++) {
+    for (int i = 0; i < dest->offset - 5; i++) {
         dest->option[i] = ntohl(cpy_4(src + 20 + 4 * i));
     }
 
@@ -107,77 +108,76 @@ int ext_ip(int len, const u_char* src, struct ip_dtgm* dest)
     dest->tos = src[1];
     dest->ttl_len = ntohs(cpy_2(src + 2));
     dest->id = ntohs(cpy_2(src + 4));
-    dest->flag = 0; // TBA
+    dest->flag = 0;   // TBA
     dest->offset = 0; //TBA
     dest->ttl = src[8];
     dest->prtl = src[9];
     dest->chksum = ntohs(cpy_2(src + 10));
     dest->src_addr = cpy_4(src + 12);
     dest->dst_addr = cpy_4(src + 16);
-    for(int i=0; i<dest->ihl - 5; i++) {
+    for (int i = 0; i < dest->ihl - 5; i++) {
         dest->option[i] = ntohl(cpy_4(src + 20 + 4 * i));
     }
 
     return len - dest->ihl * 4;
 }
-     
 
 int ext_eth(int len, const u_char* src, struct eth_frame* dest)
 {
-    for(int i=0; i<6; i++) {
+    for (int i = 0; i < 6; i++) {
         dest->dst_mac[i] = src[i];
-        dest->src_mac[i] = src[i+6];
+        dest->src_mac[i] = src[i + 6];
     }
 
     dest->eth_type = cpy_2(src + 12);
-    
+
     return len - 14;
 }
 
 int main(int argc, char* argv[])
 {
-    pcap_t* handle;		   /* Session handle */
-    char* dev;			   /* The device to sniff on */
+    pcap_t* handle;                /* Session handle */
+    char* dev;                     /* The device to sniff on */
     char errbuf[PCAP_ERRBUF_SIZE]; /* Error string */
-    struct bpf_program fp;	 /* The compiled filter */
-    char filter_exp[] = "port 80"; /* The filter expression */
-    bpf_u_int32 mask;		   /* Our netmask */
-    bpf_u_int32 net;		   /* Our IP */
-    struct pcap_pkthdr* header;     /* The header that pcap gives us */
-    const u_char* packet;	  /* The actual packet */
+    struct bpf_program fp;         /* The compiled filter */
+    char filter_exp[] = ""; /* The filter expression */
+    bpf_u_int32 mask;              /* Our netmask */
+    bpf_u_int32 net;               /* Our IP */
+    struct pcap_pkthdr* header;    /* The header that pcap gives us */
+    const u_char* packet;          /* The actual packet */
 
     /* Define the device */
     dev = pcap_lookupdev(errbuf);
     if (dev == NULL) {
-	fprintf(stderr, "Couldn't find default device: %s\n", errbuf);
-	return (2);
+        fprintf(stderr, "Couldn't find default device: %s\n", errbuf);
+        return (2);
     }
     /* Find the properties for the device */
     if (pcap_lookupnet(dev, &net, &mask, errbuf) == -1) {
-	fprintf(stderr, "Couldn't get netmask for device %s: %s\n", dev, errbuf);
-	net = 0;
-	mask = 0;
+        fprintf(stderr, "Couldn't get netmask for device %s: %s\n", dev, errbuf);
+        net = 0;
+        mask = 0;
     }
     /* Open the session in promiscuous mode */
     handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
     if (handle == NULL) {
-	fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
-	return (2);
+        fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
+        return (2);
     }
     /* Compile and apply the filter */
     if (pcap_compile(handle, &fp, filter_exp, 0, net) == -1) {
-	fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
-	return (2);
+        fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
+        return (2);
     }
     if (pcap_setfilter(handle, &fp) == -1) {
-	fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(handle));
-	return (2);
+        fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(handle));
+        return (2);
     }
 
     int res;
-	
-    while((res = pcap_next_ex(handle, &header, &packet)) >= 0) {
-        if(res == 0)
+
+    while ((res = pcap_next_ex(handle, &header, &packet)) >= 0) {
+        if (res == 0)
             continue;
 
         int packet_len;
@@ -192,72 +192,75 @@ int main(int argc, char* argv[])
         int ip_data_len;
         int tcp_data_len;
 
-        eth_data_len = ext_eth(packet_len, packet, &ef); 
+        eth_data_len = ext_eth(packet_len, packet, &ef);
 
         printf("Ethernet Frame\n");
-        
+
         printf("Destination MAC Address: ");
-        for(int i=0; i<6; i++) {
+        for (int i = 0; i < 6; i++) {
             printf("%02X", ef.dst_mac[i]);
-            if(i != 5) printf(":");
-            else printf("\n");
+            if (i != 5)
+                printf(":");
+            else
+                printf("\n");
         }
 
         printf("Source MAC Address: ");
-        for(int i=0; i<6; i++) {
+        for (int i = 0; i < 6; i++) {
             printf("%02X", ef.src_mac[i]);
-            if(i != 5) printf(":");
-            else printf("\n");
+            if (i != 5)
+                printf(":");
+            else
+                printf("\n");
         }
 
-        if(ef.eth_type == 0x0800) {
+        if (ef.eth_type == 0x0800) {
             printf("IP Datagram\n");
 
             ip_data_len = ext_ip(eth_data_len, packet + packet_len - eth_data_len, &id);
-            
+
             uint32 tmp;
 
             printf("Source IP Address: ");
-            
+
             tmp = id.src_addr;
-            for(int i=0; i<4; i++) {
+            for (int i = 0; i < 4; i++) {
                 printf("%d", (tmp & 0xFF000000) >> 24);
                 tmp <<= 8;
-                if(i != 3) printf(".");
-                else printf("\n");
+                if (i != 3)
+                    printf(".");
+                else
+                    printf("\n");
             }
 
             printf("Destination IP Address: ");
-            
+
             tmp = id.dst_addr;
-            for(int i=0; i<4; i++) {
+            for (int i = 0; i < 4; i++) {
                 printf("%d", (tmp & 0xFF000000) >> 24);
                 tmp <<= 8;
-                if(i != 3) printf(".");
-                else printf("\n");
+                if (i != 3)
+                    printf(".");
+                else
+                    printf("\n");
             }
 
-            if(id.prtl == 0x06) {
+            if (id.prtl == 0x06) {
                 printf("TCP Segment\n");
 
-                tcp_data_len = ext_tcp(ip_data_len, packet + packet_len - ip_data_len, &ts); 
+                tcp_data_len = ext_tcp(ip_data_len, packet + packet_len - ip_data_len, &ts);
 
                 printf("Source Port: %u\n", ts.src_port);
                 printf("Destination Port: %u\n", ts.dst_port);
 
-                if(ts.src_port == 0x0050) {
+                if (ts.src_port == 0x0050) {
                     printf("HTTP Data\n");
                     ext_http(packet + packet_len - tcp_data_len);
                 }
-
             }
-
         }
 
-
-
         printf("\n");
-
     }
 
     pcap_close(handle);
