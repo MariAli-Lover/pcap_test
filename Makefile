@@ -1,4 +1,4 @@
-main : main.c
-	gcc main.c -o main -lpcap
+pcap_test : pcap_test.c
+	gcc pcap_test.c -o pcap_test -lpcap
 
 
